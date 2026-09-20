@@ -1,12 +1,18 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import Link from "next/link";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { FlaskConical } from "lucide-react";
 
 const sims = [
   {
+    href: "/simulations/ph",
     title: "pH Value Simulator",
     description: "Adjust concentration and explore how pH changes.",
-    embedUrl:
-      "https://phet.colorado.edu/sims/html/ph-scale/latest/ph-scale_en.html",
+    icon: FlaskConical,
   },
 ];
 
@@ -19,31 +25,28 @@ export default function SimulationsPage() {
         Interactive simulations to explore scientific concepts.
       </p>
 
-      <div className="mt-8 space-y-8">
-        {sims.map((sim) => (
-          <Card key={sim.embedUrl} className="overflow-hidden">
-            <CardHeader>
-              <FlaskConical className="mb-2 size-6" />
+      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {sims.map((sim) => {
+          const Icon = sim.icon;
 
-              <CardTitle>{sim.title}</CardTitle>
+          return (
+            <Link key={sim.href} href={sim.href}>
+              <Card className="h-full cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md">
+                <CardHeader>
+                  <div className="mb-3 flex size-11 items-center justify-center rounded-lg bg-muted">
+                    <Icon className="size-5" />
+                  </div>
 
-              <CardDescription>
-                {sim.description}
-              </CardDescription>
-            </CardHeader>
+                  <CardTitle>{sim.title}</CardTitle>
 
-            <CardContent>
-              <div className="w-full overflow-hidden rounded-lg border bg-white">
-                <iframe
-                  src={sim.embedUrl}
-                  title={sim.title}
-                  className="h-[600px] w-full"
-                  allowFullScreen
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  <CardDescription>
+                    {sim.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
