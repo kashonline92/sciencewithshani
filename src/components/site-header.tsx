@@ -32,11 +32,11 @@ function initials(name: string) {
 
 export function SiteHeader() {
   const router = useRouter();
-  const supabase = createClient();
   const [profile, setProfile] = useState<{ full_name: string; role: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const supabase = createClient();
     let active = true;
 
     async function loadProfile() {
@@ -69,9 +69,10 @@ export function SiteHeader() {
       active = false;
       listener.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   async function handleLogout() {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
