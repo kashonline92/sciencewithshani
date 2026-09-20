@@ -30,33 +30,13 @@ const sims = [
     icon: Atom,
   },
   {
-    href: "/simulations/dna",
-    title: "DNA Explorer",
+    href: "/simulations/energyforms",
+    title: "Energy Forms and Changes Simulator",
     description:
-      "Explore DNA structure, base pairs, and genetic information.",
+      "Explore different forms of energy and how they change using the interactive simulation.",
     icon: Dna,
   },
-  {
-    href: "/simulations/physics",
-    title: "Physics Lab",
-    description:
-      "Explore motion, forces, energy, and other physics concepts.",
-    icon: Orbit,
-  },
-  {
-    href: "/simulations/electricity",
-    title: "Electricity Simulator",
-    description:
-      "Explore voltage, current, resistance, and simple circuits.",
-    icon: Zap,
-  },
-  {
-    href: "/simulations/microscope",
-    title: "Virtual Microscope",
-    description:
-      "Explore cells and microscopic structures interactively.",
-    icon: Microscope,
-  },
+  
 ];
 
 export default function SimulationsPage() {
