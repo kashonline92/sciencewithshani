@@ -5,43 +5,101 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { FlaskConical } from "lucide-react";
+import {
+  FlaskConical,
+  Atom,
+  Dna,
+  Orbit,
+  Zap,
+  Microscope,
+} from "lucide-react";
 
 const sims = [
   {
     href: "/simulations/ph",
     title: "pH Value Simulator",
-    description: "Adjust concentration and explore how pH changes.",
+    description:
+      "Explore acids, bases, concentration, and how pH changes.",
     icon: FlaskConical,
+  },
+  {
+    href: "/simulations/atoms",
+    title: "Atomic Structure",
+    description:
+      "Explore protons, neutrons, electrons, and atomic structure.",
+    icon: Atom,
+  },
+  {
+    href: "/simulations/dna",
+    title: "DNA Explorer",
+    description:
+      "Explore DNA structure, base pairs, and genetic information.",
+    icon: Dna,
+  },
+  {
+    href: "/simulations/physics",
+    title: "Physics Lab",
+    description:
+      "Explore motion, forces, energy, and other physics concepts.",
+    icon: Orbit,
+  },
+  {
+    href: "/simulations/electricity",
+    title: "Electricity Simulator",
+    description:
+      "Explore voltage, current, resistance, and simple circuits.",
+    icon: Zap,
+  },
+  {
+    href: "/simulations/microscope",
+    title: "Virtual Microscope",
+    description:
+      "Explore cells and microscopic structures interactively.",
+    icon: Microscope,
   },
 ];
 
 export default function SimulationsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
-      <h1 className="text-2xl font-semibold">Science Simulations</h1>
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Science Simulations
+        </h1>
 
-      <p className="mt-1 text-muted-foreground">
-        Interactive simulations to explore scientific concepts.
-      </p>
+        <p className="mt-2 max-w-2xl text-muted-foreground">
+          Interactive simulations to explore scientific concepts and
+          understand how things work.
+        </p>
+      </div>
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {sims.map((sim) => {
           const Icon = sim.icon;
 
           return (
-            <Link key={sim.href} href={sim.href}>
-              <Card className="h-full cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md">
+            <Link
+              key={sim.href}
+              href={sim.href}
+              className="group"
+            >
+              <Card className="h-full transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-lg">
                 <CardHeader>
-                  <div className="mb-3 flex size-11 items-center justify-center rounded-lg bg-muted">
-                    <Icon className="size-5" />
+                  <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-muted transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <Icon className="size-6" />
                   </div>
 
-                  <CardTitle>{sim.title}</CardTitle>
+                  <CardTitle className="text-lg">
+                    {sim.title}
+                  </CardTitle>
 
-                  <CardDescription>
+                  <CardDescription className="leading-relaxed">
                     {sim.description}
                   </CardDescription>
+
+                  <div className="pt-3 text-sm font-medium text-primary">
+                    Open simulator →
+                  </div>
                 </CardHeader>
               </Card>
             </Link>
