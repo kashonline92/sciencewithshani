@@ -23,10 +23,10 @@ const sims = [
     icon: FlaskConical,
   },
   {
-    href: "/simulations/atoms",
-    title: "Atomic Structure",
+    href: "/simulations/density",
+    title: "Density Simulator",
     description:
-      "Explore protons, neutrons, electrons, and atomic structure.",
+      "Explore mass, volume, and density of different materials.",
     icon: Atom,
   },
   {
