@@ -27,21 +27,30 @@ const features = [
 export default function Home() {
   return (
     <div>
-      <section className="mx-auto max-w-6xl px-4 pt-20 pb-16 text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Science with Shani
-        </h1>
-        <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-          3D anatomy, interactive science simulations, and weekly quizzes —
-          all in one place for tuition class.
-        </p>
-        <div className="mt-8 flex justify-center gap-3">
-          <Button size="lg" asChild>
-            <Link href="/signup">Get started</Link>
-          </Button>
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/quiz">I have a quiz link</Link>
-          </Button>
+      <section className="relative overflow-hidden">
+        {/* Animated background blobs */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="animate-blob absolute -top-24 -left-24 size-72 rounded-full bg-blue-400/30 blur-3xl dark:bg-blue-500/20" />
+          <div className="animate-blob animation-delay-2000 absolute -top-16 right-0 size-72 rounded-full bg-purple-400/30 blur-3xl dark:bg-purple-500/20" />
+          <div className="animate-blob animation-delay-4000 absolute bottom-0 left-1/3 size-72 rounded-full bg-pink-300/30 blur-3xl dark:bg-pink-500/20" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl px-4 pt-20 pb-16 text-center">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+            Science with Shanika
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
+            3D anatomy, interactive science simulations, and weekly quizzes —
+            all in one place for tuition class.
+          </p>
+          <div className="mt-8 flex justify-center gap-3">
+            <Button size="lg" asChild>
+              <Link href="/signup">Get started</Link>
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/quiz">I have a quiz link</Link>
+            </Button>
+          </div>
         </div>
       </section>
 

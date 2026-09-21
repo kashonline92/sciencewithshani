@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Option = { id: string; option_text: string; is_correct: boolean; position: number };
 type Question = {
@@ -30,6 +31,8 @@ export default function TakeQuizPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   const load = useCallback(async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -109,6 +112,16 @@ export default function TakeQuizPage() {
       );
   }
 
+  function goNext() {
+    setDirection("forward");
+    setCurrent((c) => Math.min(c + 1, questions.length - 1));
+  }
+
+  function goPrev() {
+    setDirection("back");
+    setCurrent((c) => Math.max(c - 1, 0));
+  }
+
   async function handleDone() {
     if (!submissionId) return;
     const unanswered = questions.filter((q) => !answers[q.id]);
@@ -142,64 +155,146 @@ export default function TakeQuizPage() {
   if (loading) return <div className="mx-auto max-w-2xl px-4 py-16 text-muted-foreground">Loading...</div>;
   if (!paperId) return <div className="mx-auto max-w-2xl px-4 py-16 text-muted-foreground">Quiz not found.</div>;
 
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-16">
-      <h1 className="text-2xl font-semibold">{title}</h1>
+  // ----- Locked / submitted view: full results list -----
+  if (locked) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16">
+        <h1 className="text-2xl font-semibold">{title}</h1>
 
-      {locked && (
         <Card className="mt-4 border-green-500/40 bg-green-500/5">
           <CardContent className="p-4 text-sm">
             Submitted — you scored <span className="font-semibold">{score ?? "—"}</span> /{" "}
             {questions.length}. Answers are locked.
           </CardContent>
         </Card>
-      )}
 
-      <div className="mt-8 space-y-6">
-        {questions.map((q, i) => (
-          <Card key={q.id}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {i + 1}. {q.question_text}
-              </CardTitle>
-              {q.image_url && (
-                <img
-                  src={q.image_url}
-                  alt="Question attachment"
-                  className="mt-2 max-h-64 rounded-md border object-contain"
-                />
-              )}
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {q.options.map((o) => {
-                const selected = answers[q.id] === o.id;
-                const showCorrect = locked && o.is_correct;
-                return (
-                  <button
-                    key={o.id}
-                    disabled={locked}
-                    onClick={() => selectOption(q.id, o.id)}
-                    className={cn(
-                      "w-full rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                      selected && !locked && "border-primary bg-primary/10",
-                      showCorrect && "border-green-500 bg-green-500/10",
-                      selected && locked && !o.is_correct && "border-destructive bg-destructive/10",
-                      locked && "cursor-not-allowed"
-                    )}
-                  >
-                    {o.option_text}
-                  </button>
-                );
-              })}
-            </CardContent>
-          </Card>
-        ))}
+        <div className="mt-8 space-y-6">
+          {questions.map((q, i) => (
+            <Card key={q.id}>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {i + 1}. {q.question_text}
+                </CardTitle>
+                {q.image_url && (
+                  <img
+                    src={q.image_url}
+                    alt="Question attachment"
+                    className="mt-2 max-h-64 rounded-md border object-contain"
+                  />
+                )}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {q.options.map((o) => {
+                  const selected = answers[q.id] === o.id;
+                  const showCorrect = o.is_correct;
+                  return (
+                    <div
+                      key={o.id}
+                      className={cn(
+                        "w-full rounded-md border px-3 py-2 text-left text-sm",
+                        showCorrect && "border-green-500 bg-green-500/10",
+                        selected && !o.is_correct && "border-destructive bg-destructive/10"
+                      )}
+                    >
+                      {o.option_text}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ----- Active carousel view: one question at a time -----
+  const q = questions[current];
+  const isLast = current === questions.length - 1;
+  const isAnswered = q ? !!answers[q.id] : false;
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-16">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{title}</h1>
+        {questions.length > 0 && (
+          <span className="text-sm text-muted-foreground">
+            {current + 1} / {questions.length}
+          </span>
+        )}
       </div>
 
-      {!locked && questions.length > 0 && (
-        <Button className="mt-8 w-full" size="lg" onClick={handleDone} disabled={submitting}>
-          {submitting ? "Submitting..." : "Done — submit answers"}
+      {questions.length > 0 && (
+        <div className="mt-2 h-1.5 w-full rounded-full bg-muted">
+          <div
+            className="h-1.5 rounded-full bg-primary transition-all"
+            style={{ width: `${((current + 1) / questions.length) * 100}%` }}
+          />
+        </div>
+      )}
+
+      <div className="relative mt-8 overflow-hidden">
+        <div
+          key={q?.id}
+          className={cn(
+            "animate-in duration-300",
+            direction === "forward" ? "slide-in-from-right-8" : "slide-in-from-left-8"
+          )}
+        >
+          {q && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {current + 1}. {q.question_text}
+                </CardTitle>
+                {q.image_url && (
+                  <img
+                    src={q.image_url}
+                    alt="Question attachment"
+                    className="mt-2 max-h-64 rounded-md border object-contain"
+                  />
+                )}
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {q.options.map((o) => {
+                  const selected = answers[q.id] === o.id;
+                  return (
+                    <button
+                      key={o.id}
+                      onClick={() => selectOption(q.id, o.id)}
+                      className={cn(
+                        "w-full rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                        selected && "border-primary bg-primary/10"
+                      )}
+                    >
+                      {o.option_text}
+                    </button>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 flex items-center justify-between">
+        <Button variant="outline" onClick={goPrev} disabled={current === 0}>
+          <ChevronLeft className="size-4" /> Back
         </Button>
+
+        {isLast ? (
+          <Button onClick={handleDone} disabled={submitting}>
+            {submitting ? "Submitting..." : "Done — submit answers"}
+          </Button>
+        ) : (
+          <Button onClick={goNext} disabled={!isAnswered}>
+            Next <ChevronRight className="size-4" />
+          </Button>
+        )}
+      </div>
+
+      {!isAnswered && !isLast && (
+        <p className="mt-2 text-center text-xs text-muted-foreground">Select an answer to continue.</p>
       )}
     </div>
   );
