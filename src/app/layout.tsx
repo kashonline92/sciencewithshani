@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LearnLab",
+  title: "Science with Shani",
   description: "3D anatomy, science simulations, and weekly quizzes for tuition class.",
 };
 

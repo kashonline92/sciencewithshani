@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 
 type Row = {
   student_id: string;
@@ -11,19 +14,37 @@ type Row = {
   score: number | null;
   submitted_at: string | null;
   total: number;
+  previousScore: number | null;
+  previousTotal: number | null;
 };
 
 type QStat = { question_text: string; correct: number; total: number };
+type TrendPoint = { title: string; date: string; avgPercent: number };
 
 export default function AnalyticsPage() {
   const { id } = useParams<{ id: string }>();
   const supabase = createClient();
+  const [paperTitle, setPaperTitle] = useState("");
+  const [grade, setGrade] = useState<number | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [qStats, setQStats] = useState<QStat[]>([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const teacherId = userData.user?.id;
+
+      const { data: paper } = await supabase
+        .from("papers")
+        .select("title, grade, created_at")
+        .eq("id", id)
+        .single();
+      setPaperTitle(paper?.title ?? "");
+      setGrade(paper?.grade ?? null);
+
       const { count } = await supabase
         .from("questions")
         .select("*", { count: "exact", head: true })
@@ -35,14 +56,45 @@ export default function AnalyticsPage() {
         .select("student_id, score, submitted_at, profiles(full_name)")
         .eq("paper_id", id);
 
+      // Find the immediately preceding paper (same teacher, same grade if set,
+      // created before this one) so we can compare each student's progress.
+      let prevScores = new Map<string, { score: number | null; total: number }>();
+      if (teacherId && paper) {
+        const { data: prevPaper } = await supabase
+          .from("papers")
+          .select("id")
+          .eq("teacher_id", teacherId)
+          .lt("created_at", paper.created_at)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (prevPaper) {
+          const { count: prevTotal } = await supabase
+            .from("questions")
+            .select("*", { count: "exact", head: true })
+            .eq("paper_id", prevPaper.id);
+          const { data: prevSubs } = await supabase
+            .from("submissions")
+            .select("student_id, score")
+            .eq("paper_id", prevPaper.id);
+          prevSubs?.forEach((s) => prevScores.set(s.student_id, { score: s.score, total: prevTotal ?? 0 }));
+        }
+      }
+
       setRows(
-        (subs ?? []).map((s: any) => ({
-          student_id: s.student_id,
-          full_name: s.profiles?.full_name ?? "Unknown",
-          score: s.score,
-          submitted_at: s.submitted_at,
-          total: count ?? 0,
-        }))
+        (subs ?? []).map((s: any) => {
+          const prev = prevScores.get(s.student_id);
+          return {
+            student_id: s.student_id,
+            full_name: s.profiles?.full_name ?? "Unknown",
+            score: s.score,
+            submitted_at: s.submitted_at,
+            total: count ?? 0,
+            previousScore: prev?.score ?? null,
+            previousTotal: prev?.total ?? null,
+          };
+        })
       );
 
       const { data: questions } = await supabase
@@ -57,6 +109,35 @@ export default function AnalyticsPage() {
           return { question_text: q.question_text, correct, total: answers.length };
         })
       );
+
+      // Trend across this teacher's last several papers (class average %).
+      if (teacherId) {
+        const { data: allPapers } = await supabase
+          .from("papers")
+          .select("id, title, created_at")
+          .eq("teacher_id", teacherId)
+          .order("created_at", { ascending: true });
+
+        const points: TrendPoint[] = [];
+        for (const p of allPapers ?? []) {
+          const { count: qCount } = await supabase
+            .from("questions")
+            .select("*", { count: "exact", head: true })
+            .eq("paper_id", p.id);
+          const { data: pSubs } = await supabase
+            .from("submissions")
+            .select("score")
+            .eq("paper_id", p.id)
+            .not("submitted_at", "is", null);
+          if (!qCount || !pSubs || pSubs.length === 0) continue;
+          const avgPercent =
+            (pSubs.reduce((sum, s) => sum + (s.score ?? 0), 0) / pSubs.length / qCount) * 100;
+          points.push({ title: p.title, date: new Date(p.created_at).toLocaleDateString(), avgPercent: Math.round(avgPercent) });
+        }
+        setTrend(points);
+      }
+
+      setLoading(false);
     })();
   }, [id, supabase]);
 
@@ -68,7 +149,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-2xl font-semibold">Analytics</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-semibold">Analytics — {paperTitle}</h1>
+        {grade && <Badge variant="outline">Grade {grade}</Badge>}
+      </div>
 
       <div className="mt-6 grid grid-cols-3 gap-4">
         <Card>
@@ -91,9 +175,35 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
+      {trend.length > 1 && (
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Class average trend</CardTitle>
+            <CardDescription>Average score (%) across your papers over time.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" fontSize={12} />
+                  <YAxis domain={[0, 100]} fontSize={12} />
+                  <Tooltip
+                    formatter={(v) => [`${v}%`, "Class average"]}
+                    labelFormatter={(_, p) => p?.[0]?.payload?.title}
+                  />
+                  <Line type="monotone" dataKey="avgPercent" stroke="#2563eb" strokeWidth={2} dot />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="mt-8">
         <CardHeader>
           <CardTitle>Per-student results</CardTitle>
+          <CardDescription>Compared to their previous paper.</CardDescription>
         </CardHeader>
         <CardContent>
           <table className="w-full text-sm">
@@ -101,23 +211,48 @@ export default function AnalyticsPage() {
               <tr className="border-b text-left text-muted-foreground">
                 <th className="py-2">Student</th>
                 <th className="py-2">Score</th>
+                <th className="py-2">Progress</th>
                 <th className="py-2">Status</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.student_id} className="border-b last:border-0">
-                  <td className="py-2">{r.full_name}</td>
-                  <td className="py-2">
-                    {r.score ?? "—"}/{r.total}
-                  </td>
-                  <td className="py-2">{r.submitted_at ? "Submitted" : "In progress"}</td>
-                </tr>
-              ))}
+              {rows.map((r) => {
+                const curPct = r.score != null && r.total ? (r.score / r.total) * 100 : null;
+                const prevPct =
+                  r.previousScore != null && r.previousTotal ? (r.previousScore / r.previousTotal) * 100 : null;
+                const delta = curPct != null && prevPct != null ? Math.round(curPct - prevPct) : null;
+
+                return (
+                  <tr key={r.student_id} className="border-b last:border-0">
+                    <td className="py-2">{r.full_name}</td>
+                    <td className="py-2">
+                      {r.score ?? "—"}/{r.total}
+                    </td>
+                    <td className="py-2">
+                      {delta === null ? (
+                        <span className="text-muted-foreground">No prior paper</span>
+                      ) : delta > 0 ? (
+                        <span className="flex items-center gap-1 text-green-600">
+                          <ArrowUp className="size-3" /> {delta}%
+                        </span>
+                      ) : delta < 0 ? (
+                        <span className="flex items-center gap-1 text-destructive">
+                          <ArrowDown className="size-3" /> {Math.abs(delta)}%
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Minus className="size-3" /> Same
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2">{r.submitted_at ? "Submitted" : "In progress"}</td>
+                  </tr>
+                );
+              })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="py-4 text-center text-muted-foreground">
-                    No submissions yet.
+                  <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                    {loading ? "Loading..." : "No submissions yet."}
                   </td>
                 </tr>
               )}

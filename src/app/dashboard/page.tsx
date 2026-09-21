@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -14,6 +15,7 @@ type Paper = {
   title: string;
   status: "draft" | "live" | "closed";
   share_slug: string;
+  grade: number | null;
   created_at: string;
 };
 
@@ -23,11 +25,14 @@ const statusVariant = {
   closed: "outline",
 } as const;
 
+const GRADES = [6, 7, 8, 9, 10, 11];
+
 export default function DashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const [papers, setPapers] = useState<Paper[]>([]);
   const [title, setTitle] = useState("");
+  const [grade, setGrade] = useState<number>(6);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -40,7 +45,7 @@ export default function DashboardPage() {
       }
       const { data } = await supabase
         .from("papers")
-        .select("id, title, status, share_slug, created_at")
+        .select("id, title, status, share_slug, grade, created_at")
         .order("created_at", { ascending: false });
       setPapers(data ?? []);
       setLoading(false);
@@ -55,7 +60,7 @@ export default function DashboardPage() {
     const { data: userData } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("papers")
-      .insert({ title, teacher_id: userData.user!.id })
+      .insert({ title, grade, teacher_id: userData.user!.id })
       .select()
       .single();
 
@@ -74,7 +79,7 @@ export default function DashboardPage() {
       <Card className="mt-6">
         <CardHeader>
           <CardTitle>New weekly paper</CardTitle>
-          <CardDescription>Give it a title, then add questions.</CardDescription>
+          <CardDescription>Give it a title and grade, then add questions.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={createPaper} className="flex gap-2">
@@ -82,7 +87,19 @@ export default function DashboardPage() {
               placeholder="e.g. Week 5 — Chemical Bonding"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="flex-1"
             />
+            <select
+              value={grade}
+              onChange={(e) => setGrade(parseInt(e.target.value))}
+              className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+            >
+              {GRADES.map((g) => (
+                <option key={g} value={g}>
+                  Grade {g}
+                </option>
+              ))}
+            </select>
             <Button type="submit" disabled={creating}>
               {creating ? "Creating..." : "Create"}
             </Button>
@@ -102,6 +119,7 @@ export default function DashboardPage() {
                 <div>
                   <div className="font-medium">{p.title}</div>
                   <div className="text-xs text-muted-foreground">
+                    {p.grade ? `Grade ${p.grade} · ` : ""}
                     Created {new Date(p.created_at).toLocaleDateString()}
                   </div>
                 </div>

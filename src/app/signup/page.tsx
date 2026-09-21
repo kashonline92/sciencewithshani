@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"student" | "teacher">("student");
+  const [grade, setGrade] = useState<number>(6);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +28,13 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName, role } },
+      options: {
+        data: {
+          full_name: fullName,
+          role,
+          ...(role === "student" ? { grade } : {}),
+        },
+      },
     });
 
     setLoading(false);
@@ -65,6 +72,23 @@ export default function SignupPage() {
               <Label htmlFor="fullName">Full name</Label>
               <Input id="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
             </div>
+            {role === "student" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="grade">Grade</Label>
+                <select
+                  id="grade"
+                  value={grade}
+                  onChange={(e) => setGrade(parseInt(e.target.value))}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm"
+                >
+                  {[6, 7, 8, 9, 10, 11].map((g) => (
+                    <option key={g} value={g}>
+                      Grade {g}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

@@ -82,7 +82,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="font-semibold tracking-tight">
-          LearnLab
+          Science with Shani
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground sm:flex">
           {links.map((l) => (

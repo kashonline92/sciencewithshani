@@ -29,7 +29,7 @@ export default function Home() {
     <div>
       <section className="mx-auto max-w-6xl px-4 pt-20 pb-16 text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Learn with LearnLab
+          Science with Shani
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
           3D anatomy, interactive science simulations, and weekly quizzes —

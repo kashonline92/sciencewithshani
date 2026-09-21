@@ -11,6 +11,7 @@ create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
   role user_role not null default 'student',
+  grade smallint, -- student's grade (6-11); null for teachers
   created_at timestamptz not null default now()
 );
 
@@ -20,15 +21,16 @@ create table profiles (
 create function handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, full_name, role)
+  insert into public.profiles (id, full_name, role, grade)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'full_name', new.email),
-    coalesce((new.raw_user_meta_data->>'role')::user_role, 'student')
+    coalesce((new.raw_user_meta_data->>'role')::user_role, 'student'),
+    (new.raw_user_meta_data->>'grade')::smallint
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 create trigger on_auth_user_created
   after insert on auth.users
@@ -42,6 +44,7 @@ create table papers (
   teacher_id uuid not null references profiles(id) on delete cascade,
   title text not null,
   description text,
+  grade smallint, -- which grade this paper targets
   status paper_status not null default 'draft',
   share_slug text unique not null default substr(md5(random()::text), 1, 8),
   created_at timestamptz not null default now(),
@@ -54,6 +57,7 @@ create table questions (
   id uuid primary key default gen_random_uuid(),
   paper_id uuid not null references papers(id) on delete cascade,
   question_text text not null,
+  image_url text, -- optional image attached to the question
   position int not null default 0
 );
 
@@ -136,9 +140,20 @@ alter table answers enable row level security;
 
 -- Profiles: everyone can read their own; teachers can read all (for analytics/names)
 create policy "read own profile" on profiles for select using (auth.uid() = id);
-create policy "teachers read all profiles" on profiles for select using (
-  exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'teacher')
-);
+
+create or replace function public.is_teacher()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.profiles where id = auth.uid() and role = 'teacher'
+  );
+$$;
+
+create policy "teachers read all profiles" on profiles for select using (public.is_teacher());
 
 -- Papers: teacher manages their own papers.
 create policy "teacher full access own papers" on papers for all using (
@@ -192,3 +207,19 @@ create policy "teacher reads answers of own papers" on answers for select using 
     where s.id = answers.submission_id and p.teacher_id = auth.uid()
   )
 );
+
+-- ============================================================
+-- STORAGE: question images (public read, teachers can upload)
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('question-images', 'question-images', true)
+on conflict (id) do nothing;
+
+create policy "public read question images" on storage.objects
+for select using (bucket_id = 'question-images');
+
+create policy "teachers upload question images" on storage.objects
+for insert with check (bucket_id = 'question-images' and public.is_teacher());
+
+create policy "teachers manage own question images" on storage.objects
+for all using (bucket_id = 'question-images' and public.is_teacher());

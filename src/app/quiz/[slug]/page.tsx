@@ -8,7 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type Option = { id: string; option_text: string; is_correct: boolean; position: number };
-type Question = { id: string; question_text: string; position: number; options: Option[] };
+type Question = {
+  id: string;
+  question_text: string;
+  image_url: string | null;
+  position: number;
+  options: Option[];
+};
 
 export default function TakeQuizPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -47,7 +53,7 @@ export default function TakeQuizPage() {
 
     const { data: qs } = await supabase
       .from("questions")
-      .select("id, question_text, position, options(id, option_text, is_correct, position)")
+      .select("id, question_text, image_url, position, options(id, option_text, is_correct, position)")
       .eq("paper_id", paper.id)
       .order("position");
     setQuestions(
@@ -156,6 +162,13 @@ export default function TakeQuizPage() {
               <CardTitle className="text-base">
                 {i + 1}. {q.question_text}
               </CardTitle>
+              {q.image_url && (
+                <img
+                  src={q.image_url}
+                  alt="Question attachment"
+                  className="mt-2 max-h-64 rounded-md border object-contain"
+                />
+              )}
             </CardHeader>
             <CardContent className="space-y-2">
               {q.options.map((o) => {
