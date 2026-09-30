@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import VPrism from "@/components/block/v-prism";
+import FlipText from "@/components/block/flip-text";
 import {
   Bone,
   FlaskConical,
@@ -13,24 +15,17 @@ import {
   GraduationCap,
   Sparkles,
   PhoneCall,
-  Calendar,
   Clock,
   MapPin,
   CheckCircle2,
-  Users,
   BookOpen,
   Send,
-  Atom,
-  Microscope,
   Zap,
-  ArrowRight,
-  MessageSquare
+  ArrowRight
 } from "lucide-react";
 
 export default function Home() {
   const [selectedGrade, setSelectedGrade] = useState("grade10");
-  const [interactiveMode, setInteractiveMode] = useState<"ph" | "anatomy" | "quiz">("ph");
-  const [phValue, setPhValue] = useState(7);
   const [contactSubmitted, setContactSubmitted] = useState(false);
 
   // Grade specifics
@@ -73,234 +68,56 @@ export default function Home() {
     }
   };
 
-  const getPhColor = (val: number) => {
-    if (val < 3) return "bg-red-500 text-white";
-    if (val < 6) return "bg-orange-400 text-white";
-    if (val === 7) return "bg-green-500 text-white";
-    if (val < 11) return "bg-blue-400 text-white";
-    return "bg-purple-600 text-white";
-  };
-
-  const getPhLabel = (val: number) => {
-    if (val < 3) return "Strongly Acidic (e.g., Stomach Acid, Battery Acid)";
-    if (val < 6) return "Weakly Acidic (e.g., Coffee, Rainwater)";
-    if (val === 7) return "Neutral (e.g., Pure Water, Blood)";
-    if (val < 11) return "Weakly Alkaline (e.g., Soap Water, Baking Soda)";
-    return "Strongly Alkaline (e.g., Bleach, Drain Cleaner)";
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Dynamic Announcement / Banner */}
+      {/* Announcement Banner */}
       <div className="bg-primary text-primary-foreground text-center py-2 px-4 text-xs sm:text-sm font-medium flex items-center justify-center gap-2">
         <Sparkles className="size-4 animate-pulse" />
-        <span>New 2025/2026 O/L Science Theory & Revision Batches Enrolling Now!</span>
+        <span>New 2025/2026 O/L Science Batches Enrolling Now!</span>
         <Badge variant="secondary" className="ml-2 hidden sm:inline-flex text-xs">
           Physical & Online
         </Badge>
       </div>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-muted/50 via-background to-background pt-12 pb-20 lg:pt-20 lg:pb-28">
-        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="animate-blob absolute -top-24 -left-24 size-96 rounded-full bg-blue-400/20 blur-3xl dark:bg-blue-600/20" />
-          <div className="animate-blob animation-delay-2000 absolute -top-16 right-0 size-96 rounded-full bg-indigo-400/20 blur-3xl dark:bg-indigo-600/20" />
-          <div className="animate-blob animation-delay-4000 absolute bottom-0 left-1/3 size-96 rounded-full bg-emerald-400/20 blur-3xl dark:bg-emerald-600/20" />
+      {/* Simplified Clean Hero Section */}
+      <section className="relative overflow-hidden bg-slate-100 dark:bg-slate-950 pt-12 pb-16 lg:pt-20 lg:pb-24">
+        {/* Interactive VPrism Glass Canvas Display */}
+        <div className="absolute inset-0 z-0 opacity-90 pointer-events-auto">
+          <VPrism className="h-full w-full" />
         </div>
 
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
-            {/* Left Content */}
-            <div className="space-y-6 lg:col-span-7">
-              <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium backdrop-blur shadow-sm">
-                <GraduationCap className="size-4 text-primary" />
-                <span>B.Sc. Natural Sciences Specialist</span>
-                <span className="text-muted-foreground">|</span>
-                <span className="text-primary font-semibold">Grades 6 – 11 (O/L)</span>
-              </div>
-
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-                Master Science with <br className="hidden sm:inline" />
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Shanika Nandasiri
-                </span>
-              </h1>
-
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Transform complex scientific principles into clear, intuitive knowledge.
-                Experience interactive 3D anatomy models, hands-on simulations, and instant weekly quiz evaluations tailored for top O/L exam results.
-              </p>
-
-              {/* Quick Highlights */}
-              <div className="grid grid-cols-2 gap-3 pt-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>Theory & Revision Classes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>Physical & Zoom Live Classes</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>3D Interactive Anatomy Models</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-500" />
-                  <span>Weekly Online MCQ Papers</span>
-                </div>
-              </div>
-
-              {/* CTA Action Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-4">
-                <Button size="lg" className="h-12 px-8 text-base shadow-lg shadow-primary/25" asChild>
-                  <Link href="/signup">
-                    Join Classes Now <ArrowRight className="ml-2 size-5" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="h-12 px-6 text-base" asChild>
-                  <Link href="#classes">
-                    View Timetable & Fees
-                  </Link>
-                </Button>
-                <Button size="lg" variant="ghost" className="h-12 px-4 gap-2 text-primary" asChild>
-                  <a href="tel:0718855123">
-                    <PhoneCall className="size-4" /> 071 88 55 123
-                  </a>
-                </Button>
-              </div>
+        <div className="relative z-10 mx-auto max-w-6xl px-4 pointer-events-none">
+          <div className="max-w-xl space-y-6 bg-background/85 dark:bg-slate-950/85 p-6 sm:p-8 rounded-2xl border shadow-xl backdrop-blur-md pointer-events-auto">
+            <div className="inline-flex items-center gap-2 rounded-full border bg-muted/80 px-3 py-1 text-xs font-semibold text-foreground">
+              <GraduationCap className="size-4 text-primary" />
+              <span>Shanika Nandasiri (B.Sc. Natural Sciences)</span>
             </div>
 
-            {/* Right Interactive Hero Box */}
-            <div className="lg:col-span-5">
-              <Card className="border-2 shadow-2xl bg-card/95 backdrop-blur overflow-hidden">
-                <CardHeader className="bg-muted/40 pb-4 border-b">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="size-5 text-primary" />
-                      <CardTitle className="text-base font-bold">Interactive Learning Hub</CardTitle>
-                    </div>
-                    <Badge variant="outline" className="text-xs">Live Sandbox</Badge>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Try interactive teaching modules right here
-                  </CardDescription>
-                </CardHeader>
+            {/* Clear Heading with FlipText effect */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground">
+              Science with <br />
+              <span className="text-primary inline-block pt-1">
+                <FlipText duration={2.5}>Shanika Nandasiri</FlipText>
+              </span>
+            </h1>
 
-                <CardContent className="p-5 space-y-5">
-                  {/* Switcher Tabs */}
-                  <div className="grid grid-cols-3 gap-1 bg-muted p-1 rounded-lg text-xs text-center font-medium">
-                    <button
-                      onClick={() => setInteractiveMode("ph")}
-                      className={`py-1.5 rounded-md transition-all ${
-                        interactiveMode === "ph" ? "bg-background text-foreground shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      🧪 pH Simulator
-                    </button>
-                    <button
-                      onClick={() => setInteractiveMode("anatomy")}
-                      className={`py-1.5 rounded-md transition-all ${
-                        interactiveMode === "anatomy" ? "bg-background text-foreground shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      🦴 3D Anatomy
-                    </button>
-                    <button
-                      onClick={() => setInteractiveMode("quiz")}
-                      className={`py-1.5 rounded-md transition-all ${
-                        interactiveMode === "quiz" ? "bg-background text-foreground shadow-sm font-semibold" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      📝 Weekly Quiz
-                    </button>
-                  </div>
+            {/* Simple concise description */}
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              Interactive 3D anatomy, hands-on simulations, and weekly online papers tailored for O/L Science success.
+            </p>
 
-                  {/* Tab Content 1: pH Simulator */}
-                  {interactiveMode === "ph" && (
-                    <div className="space-y-4 py-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-muted-foreground">pH Meter Scale</span>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${getPhColor(phValue)}`}>
-                          pH {phValue}
-                        </span>
-                      </div>
-
-                      <div className="p-4 rounded-xl border bg-muted/30 text-center space-y-2">
-                        <div className="text-3xl font-black">{phValue}</div>
-                        <p className="text-xs font-medium text-muted-foreground min-h-[32px]">
-                          {getPhLabel(phValue)}
-                        </p>
-                      </div>
-
-                      <div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="14"
-                          step="1"
-                          value={phValue}
-                          onChange={(e) => setPhValue(parseInt(e.target.value))}
-                          className="w-full accent-primary h-2 bg-muted rounded-lg cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
-                          <span>0 (Acid)</span>
-                          <span>7 (Neutral)</span>
-                          <span>14 (Alkaline)</span>
-                        </div>
-                      </div>
-
-                      <Button size="sm" variant="secondary" className="w-full text-xs" asChild>
-                        <Link href="/simulations">Launch Full Simulations Hub →</Link>
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Tab Content 2: 3D Anatomy */}
-                  {interactiveMode === "anatomy" && (
-                    <div className="space-y-4 py-2 text-center">
-                      <div className="p-6 rounded-xl border bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 space-y-3">
-                        <Bone className="size-12 mx-auto text-primary animate-bounce" />
-                        <div>
-                          <p className="font-bold text-sm">Interactive 3D Skeleton & Organs</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Manipulate, isolate, and study human biology systems in full 3D.
-                          </p>
-                        </div>
-                      </div>
-
-                      <Button size="sm" className="w-full text-xs" asChild>
-                        <Link href="/anatomy">Open 3D Human Anatomy Model →</Link>
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Tab Content 3: Weekly Quiz */}
-                  {interactiveMode === "quiz" && (
-                    <div className="space-y-4 py-2">
-                      <div className="p-4 rounded-xl border bg-muted/30 space-y-2">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-primary">Grade 10 O/L Sample Question</span>
-                          <Badge variant="outline" className="text-[10px]">MCQ 01</Badge>
-                        </div>
-                        <p className="text-xs font-medium">
-                          Which organelle is known as the powerhouse of the cell responsible for ATP production?
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
-                          <div className="p-2 border rounded bg-background text-muted-foreground text-[11px]">A) Ribosome</div>
-                          <div className="p-2 border rounded bg-emerald-50 border-emerald-500 text-emerald-800 font-bold dark:bg-emerald-950 dark:text-emerald-200 text-[11px]">
-                            B) Mitochondria ✓
-                          </div>
-                        </div>
-                      </div>
-
-                      <Button size="sm" variant="outline" className="w-full text-xs" asChild>
-                        <Link href="/quiz">Take This Week&apos;s Online Paper →</Link>
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            {/* Two Clear CTA Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Button size="lg" className="h-11 px-6 text-sm font-bold shadow-lg" asChild>
+                <Link href="/signup">
+                  Join Classes Now <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="h-11 px-5 text-sm font-medium" asChild>
+                <Link href="#classes">
+                  View Timetable
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
