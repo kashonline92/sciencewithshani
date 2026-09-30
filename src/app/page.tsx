@@ -79,22 +79,22 @@ export default function Home() {
         </Badge>
       </div>
 
-      {/* Simplified Clean Hero Section */}
-      <section className="relative overflow-hidden bg-slate-100 dark:bg-slate-950 pt-12 pb-16 lg:pt-20 lg:pb-24">
+      {/* Interactive Glowing Dark Hero Section */}
+      <section className="relative overflow-hidden bg-black text-white pt-12 pb-16 lg:pt-20 lg:pb-24">
         {/* Interactive VPrism Glass Canvas Display */}
-        <div className="absolute inset-0 z-0 opacity-90 pointer-events-auto">
+        <div className="absolute inset-0 z-0 opacity-100 pointer-events-auto">
           <VPrism className="h-full w-full" />
         </div>
 
         <div className="relative z-10 mx-auto max-w-6xl px-4 pointer-events-none">
-          <div className="max-w-xl space-y-6 bg-background/85 dark:bg-slate-950/85 p-6 sm:p-8 rounded-2xl border shadow-xl backdrop-blur-md pointer-events-auto">
-            <div className="inline-flex items-center gap-2 rounded-full border bg-muted/80 px-3 py-1 text-xs font-semibold text-foreground">
+          <div className="max-w-xl space-y-6 bg-slate-950/80 p-6 sm:p-8 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-md pointer-events-auto">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-800 bg-slate-900/90 px-3 py-1 text-xs font-semibold text-slate-200">
               <GraduationCap className="size-4 text-primary" />
               <span>Shanika Nandasiri (B.Sc. Natural Sciences)</span>
             </div>
 
             {/* Clear Heading with FlipText effect */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-foreground">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white">
               Science with <br />
               <span className="text-primary inline-block pt-1">
                 <FlipText duration={2.5}>Shanika Nandasiri</FlipText>
@@ -102,18 +102,18 @@ export default function Home() {
             </h1>
 
             {/* Simple concise description */}
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
               Interactive 3D anatomy, hands-on simulations, and weekly online papers tailored for O/L Science success.
             </p>
 
             {/* Two Clear CTA Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <Button size="lg" className="h-11 px-6 text-sm font-bold shadow-lg" asChild>
+              <Button size="lg" className="h-11 px-6 text-sm font-bold shadow-lg bg-primary text-primary-foreground hover:bg-primary/90" asChild>
                 <Link href="/signup">
                   Join Classes Now <ArrowRight className="ml-2 size-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="h-11 px-5 text-sm font-medium" asChild>
+              <Button size="lg" variant="outline" className="h-11 px-5 text-sm font-medium border-slate-700 bg-slate-900/80 text-white hover:bg-slate-800" asChild>
                 <Link href="#classes">
                   View Timetable
                 </Link>
