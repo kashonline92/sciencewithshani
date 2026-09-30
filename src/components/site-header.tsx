@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const links = [
+  { href: "/#classes", label: "Classes & Schedule" },
+  { href: "/#features", label: "Interactive Tools" },
+  { href: "/#contact", label: "Contact Us" },
   { href: "/anatomy", label: "3D Anatomy" },
   { href: "/simulations", label: "Simulations" },
   { href: "/quiz", label: "Weekly Quiz" },
@@ -81,8 +84,9 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="font-semibold tracking-tight">
-          Science with Shani
+        <Link href="/" className="flex items-center gap-2 font-bold tracking-tight text-primary">
+          <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded text-sm font-extrabold">SN</span>
+          <span>Shanika Nandasiri <span className="text-xs font-normal text-muted-foreground hidden sm:inline">| Science</span></span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground sm:flex">
           {links.map((l) => (
