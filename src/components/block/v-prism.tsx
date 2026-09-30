@@ -205,7 +205,7 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     camera.zoom = getZoomScale(width);
     camera.updateProjectionMatrix();
 
-    // --- POSTPROCESSING (BLOOM + FXAA via postprocessing) ---
+    // --- POSTPROCESSING ---
     const composer = new EffectComposer(renderer, {
       frameBufferType: THREE.HalfFloatType,
       multisampling: 0,
@@ -331,7 +331,7 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     let flareDotTex: THREE.Texture | null = null;
     let flareGlowTex: THREE.Texture | null = null;
 
-    // Flare Group (y)
+    // Flare Group
     const flareGroup = new THREE.Group();
     flareGroup.scale.setScalar(1.25);
     flareGroup.visible = false;
@@ -341,7 +341,7 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     const flareScales = [0.5, 1.25, 0.75, 1.5, 2.0];
     let flareInstanced: THREE.InstancedMesh | null = null;
 
-    // Ray Group (x)
+    // Ray Group
     const rayGroup = new THREE.Group();
     scene.add(rayGroup);
 
@@ -357,14 +357,41 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     let rayCount = 0;
     let rayIntersecting = false;
 
-    // Load assets
-    Promise.all([
-      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare2.png'),
-      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare0_bw.jpg'),
-      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare3.png'),
-      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare0_bw.png'),
-      new GLTFLoader().loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/prism.glb'),
-    ]).then(([sTex, gTex, dotTex, fGlowTex, gltf]) => {
+    // Procedural texture generator for offline/resilient loading
+    function createProceduralTexture(type: 'glow' | 'streak' | 'dot'): THREE.CanvasTexture {
+      const c = document.createElement('canvas');
+      c.width = 128;
+      c.height = 128;
+      const ctx = c.getContext('2d')!;
+
+      if (type === 'glow' || type === 'dot') {
+        const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.4, 'rgba(255,255,255,0.4)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 128, 128);
+      } else {
+        const grad = ctx.createLinearGradient(0, 64, 128, 64);
+        grad.addColorStop(0, 'rgba(255,255,255,0)');
+        grad.addColorStop(0.5, 'rgba(255,255,255,1)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 128, 128);
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    function setupSceneWithAssets(
+      sTex: THREE.Texture,
+      gTex: THREE.Texture,
+      dotTex: THREE.Texture,
+      fGlowTex: THREE.Texture,
+      geometry: THREE.BufferGeometry
+    ) {
       if (isDisposed) return;
 
       streakTex = sTex;
@@ -372,7 +399,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       flareDotTex = dotTex;
       flareGlowTex = fGlowTex;
 
-      // --- BUILD FLARE GROUP (Qx) ---
       const blendProps = {
         transparent: true,
         opacity: 1,
@@ -411,7 +437,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       flareStreak.scale.set(12.5, 20, 1);
       flareGroup.add(flareStreak);
 
-      // --- BUILD INCIDENT BEAM (Uv) ---
       rayDarkMat = new THREE.MeshBasicMaterial({
         map: streakTex,
         color: '#686868',
@@ -441,10 +466,7 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       rayGlowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       rayGroup.add(rayLineMesh, rayGlowMesh);
 
-      // --- BUILD PRISM (Fx) ---
-      const coneObj = gltf.scene.getObjectByName('Cone') as THREE.Mesh;
-
-      // 1. Ray hit proxy: 3-sided cylinder matching Vercel's Prism geometry
+      // Ray hit proxy cylinder matching Prism geometry
       rayHitProxy = new THREE.Mesh(
         new THREE.CylinderGeometry(1, 1, 1, 3, 1),
         new THREE.MeshBasicMaterial()
@@ -454,7 +476,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       rayHitProxy.visible = false;
       prismGroup.add(rayHitProxy);
 
-      // 2. Visible crystal prism mesh
       prismPhysicalMat = new THREE.MeshPhysicalMaterial({
         clearcoat: 1,
         clearcoatRoughness: 0,
@@ -466,19 +487,34 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         color: new THREE.Color(settingsRef.current.prismTint),
       });
 
-      prismMesh = new THREE.Mesh(coneObj.geometry, prismPhysicalMat);
+      prismMesh = new THREE.Mesh(geometry, prismPhysicalMat);
       prismMesh.position.set(0, 0, 0.6);
       prismMesh.renderOrder = 10;
       prismMesh.scale.setScalar(2);
       prismGroup.add(prismMesh);
 
-      // Initial ray update
       updateRayPhysics();
-    }).catch(err => {
-      console.error('Failed to load prism assets:', err);
+    }
+
+    // Try loading remote assets, fallback procedurally if offline or blocked
+    Promise.all([
+      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare2.png').catch(() => createProceduralTexture('streak')),
+      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare0_bw.jpg').catch(() => createProceduralTexture('glow')),
+      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare3.png').catch(() => createProceduralTexture('dot')),
+      textureLoader.loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/lensflare0_bw.png').catch(() => createProceduralTexture('glow')),
+      new GLTFLoader().loadAsync('https://cdn-new.obsidianui.dev/effects/v-prism/prism.glb').then(gltf => {
+        const cone = gltf.scene.getObjectByName('Cone') as THREE.Mesh;
+        return cone ? cone.geometry : new THREE.CylinderGeometry(1, 1, 1, 3, 1);
+      }).catch(() => {
+        const cyl = new THREE.CylinderGeometry(1, 1, 1, 3, 1);
+        cyl.rotateX(Math.PI / 2);
+        return cyl;
+      }),
+    ]).then(([sTex, gTex, dotTex, fGlowTex, geom]) => {
+      setupSceneWithAssets(sTex, gTex, dotTex, fGlowTex, geom);
     });
 
-    // --- RAY PHYSICS & REFLECTION (Lv + Uv + Fx) ---
+    // --- RAY PHYSICS & REFLECTION ---
     const raycaster = new THREE.Raycaster();
     const scratchMat4 = new THREE.Matrix4();
     const scratchPos = new THREE.Vector3();
@@ -516,13 +552,11 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         hitPoint.toArray(rayPositions, rayCount++ * 3);
         rayIntersecting = true;
 
-        // Flare positioning (y)
         const isLight = isLightColor(settingsRef.current.background);
         flareGroup.visible = !isLight && rayIntersecting;
         flareGroup.position.set(hitPoint.x, hitPoint.y, -0.5);
         flareGroup.rotation.set(0, 0, -Math.atan2(vecDir.x, vecDir.y));
 
-        // Snell deflection angle (ve)
         let j = Math.atan2(-hitPoint.y, -hitPoint.x);
         const Z = Math.atan2(hitNormal.y, hitNormal.x);
         const re = j - Z;
@@ -541,7 +575,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         vecB.addVectors(vecA, scratchExt).toArray(rayPositions, rayCount++ * 3);
       }
 
-      // Update incident beam geometry (Uv) with zero heap allocations
       if (rayLineMesh && rayGlowMesh) {
         const isLight = isLightColor(settingsRef.current.background);
         rayLineMesh.material = isLight && rayLightMat ? rayLightMat : (rayDarkMat || rayLineMesh.material);
@@ -570,7 +603,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         rayLineMesh.count = segs;
         rayLineMesh.instanceMatrix.needsUpdate = true;
 
-        // Joints glow (u)
         scratchMat4.identity();
         scratchMat4.makeScale(0, 0, 0);
         rayGlowMesh.setMatrixAt(0, scratchMat4);
@@ -588,7 +620,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       }
     }
 
-    // Aim beam at prism from pointer coords (Wh + D)
     function aimRayAt(clientX: number, clientY: number) {
       const rect = container?.getBoundingClientRect();
       if (!rect) return;
@@ -614,7 +645,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       setRay(start, end);
     }
 
-    // --- POINTER INTERACTIONS (RAF-throttled for zero mouse jank) ---
     let isPointerDown = false;
     let pendingPointerX: number | null = null;
     let pendingPointerY: number | null = null;
@@ -644,14 +674,12 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     container.addEventListener('pointerup', handlePointerUp);
     container.addEventListener('pointercancel', handlePointerUp);
 
-    // Initial default beam angle
     setTimeout(() => {
       if (!isDisposed) {
         setRay([-10, -0.05, 0], [0, 0, 0]);
       }
-    }, 200);
+    }, 100);
 
-    // --- RESIZE HANDLER ---
     const handleResize = () => {
       if (!container) return;
       width = Math.max(1, container.clientWidth || window.innerWidth);
@@ -678,7 +706,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     resizeObserver.observe(container);
     window.addEventListener('resize', handleResize);
 
-    // --- ANIMATION LOOP ---
     let prevTime = performance.now();
     let elapsedTime = 0;
     let lastBgHex = settingsRef.current.background;
@@ -687,7 +714,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
     const animate = (currentTime: number) => {
       animId = requestAnimationFrame(animate);
 
-      // Process throttled pointer updates
       if (pendingPointerX !== null && pendingPointerY !== null) {
         aimRayAt(pendingPointerX, pendingPointerY);
         pendingPointerX = null;
@@ -698,7 +724,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       prevTime = currentTime;
       elapsedTime += delta;
 
-      // Update rainbow speed and emissive intensity
       const curSettings = settingsRef.current;
       const targetEmissive = rayIntersecting ? curSettings.rainbowGlow : 0;
       rainbowMaterial.uniforms.emissiveIntensity.value = THREE.MathUtils.lerp(
@@ -711,7 +736,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
       spotLight.intensity = rainbowMaterial.uniforms.emissiveIntensity.value * curSettings.spotIntensity;
       ambientLight.intensity = THREE.MathUtils.lerp(ambientLight.intensity, curSettings.ambientLight, 0.05);
 
-      // Animate floating bokeh flare discs (Qx)
       if (flareGroup.visible && flareInstanced) {
         flareScales.forEach((sc, f) => {
           dummyObj.scale.setScalar(sc);
@@ -724,7 +748,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         flareInstanced.instanceMatrix.needsUpdate = true;
       }
 
-      // Sync settings to prism material
       if (prismPhysicalMat) {
         prismPhysicalMat.roughness = curSettings.roughness;
         prismPhysicalMat.ior = curSettings.ior;
@@ -732,7 +755,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         prismPhysicalMat.color.set(curSettings.prismTint);
       }
 
-      // Sync background color & react to light mode switch
       const currentBgHex = curSettings.background;
       const isLight = isLightColor(currentBgHex);
       if (lastBgHex !== currentBgHex) {
@@ -743,13 +765,10 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
         updateRayPhysics();
       }
 
-      // Sync point lights
       pointLights.forEach(pl => {
         pl.intensity = curSettings.pointLights;
       });
 
-      // Render: in light mode, bloom is disabled to prevent blowout;
-      // in dark mode, postprocessing with BloomEffect renders smoothly
       if (bloomEffect) {
         bloomEffect.intensity = isLight ? 0 : curSettings.bloom;
       }
@@ -758,7 +777,6 @@ export function VPrism({ settings, className = '' }: VPrismProps) {
 
     animId = requestAnimationFrame(animate);
 
-    // --- CLEANUP ---
     return () => {
       isDisposed = true;
       cancelAnimationFrame(animId);
